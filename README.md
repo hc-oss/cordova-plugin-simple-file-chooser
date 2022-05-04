@@ -40,7 +40,7 @@ chooser.getFiles(accept?: string) : Promise<undefined|{
 
 ```js
 (async () => {
-  const file = await chooser.getFile();
+  const file = await chooser.getFiles();
   console.log(file);
 })();
 ```
