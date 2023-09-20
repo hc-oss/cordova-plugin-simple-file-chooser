@@ -1,5 +1,6 @@
 package in.foobars.cordova;
 
+import android.provider.DocumentsContract;
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Intent;
@@ -24,7 +25,9 @@ import org.json.JSONObject;
 
 public class Chooser extends CordovaPlugin {
     private static final String ACTION_OPEN = "getFiles";
+    private static final String ACTION_OPEN_FOLDER = "getFolder";
     private static final int PICK_FILE_REQUEST = 1;
+    private static final int PICK_FOLDER_REQUEST = 2;
     private static final String TAG = "Chooser";
 
     public static String getDisplayName(ContentResolver contentResolver, Uri uri) {
@@ -63,11 +66,27 @@ public class Chooser extends CordovaPlugin {
         callbackContext.sendPluginResult(pluginResult);
     }
 
+    public void chooseFolder(CallbackContext callbackContext) {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        intent.addCategory(Intent.CATEGORY_DEFAULT);
+
+        Intent chooser = Intent.createChooser(intent, "Select Folder");
+        cordova.startActivityForResult(this, chooser, Chooser.PICK_FOLDER_REQUEST);
+
+        PluginResult pluginResult = new PluginResult(PluginResult.Status.NO_RESULT);
+        pluginResult.setKeepCallback(true);
+        this.callback = callbackContext;
+        callbackContext.sendPluginResult(pluginResult);
+    }
+
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) {
         try {
             if (action.equals(Chooser.ACTION_OPEN)) {
                 this.chooseFile(callbackContext, args.getString(0));
+                return true;
+            } else if (action.equals(Chooser.ACTION_OPEN_FOLDER)) {
+                this.chooseFolder(callbackContext);
                 return true;
             }
         } catch (JSONException err) {
@@ -99,9 +118,28 @@ public class Chooser extends CordovaPlugin {
                 } else {
                     this.callback.error(resultCode);
                 }
+            } else if (requestCode == Chooser.PICK_FOLDER_REQUEST && this.callback != null) {
+                if (resultCode == Activity.RESULT_OK) {
+                    JSONArray files = new JSONArray();
+                    if (data.getClipData() != null) {
+                        for (int i = 0; i < data.getClipData().getItemCount(); i++) {
+                            files.put(processFileUri(data.getClipData().getItemAt(i).getUri()));
+                        }
+                        this.callback.success(files.toString());
+                    } else if (data.getData() != null) {
+                        files.put(processFileUri(data.getData()));
+                        this.callback.success(files.toString());
+                    } else {
+                        this.callback.error("File URI was null.");
+                    }
+                } else if (resultCode == Activity.RESULT_CANCELED) {
+                    this.callback.error("RESULT_CANCELED");
+                } else {
+                    this.callback.error(resultCode);
+                }                            
             }
         } catch (Exception err) {
-            this.callback.error("Failed to read file: " + err.toString());
+            this.callback.error("Failed to read folder: " + err.toString());
         }
     }
 
@@ -115,11 +153,25 @@ public class Chooser extends CordovaPlugin {
         JSONObject file = new JSONObject();
         try {
             file.put("mediaType", mediaType);
-            file.put("name", name);
+            file.put("name", name);            ;
             file.put("uri", uri.toString());
         } catch (JSONException err) {
             this.callback.error("Processing failed: " + err.toString());
         }
         return file;
     }
+
+    public JSONObject extractActualFolderUri(Uri uri) {
+        ContentResolver contentResolver = this.cordova.getActivity().getContentResolver();
+        String name = Chooser.getDisplayName(contentResolver, uri);
+        JSONObject dir = new JSONObject();
+        try {
+            dir.put("name", name);
+            dir.put("uri", uri.toString());
+        } catch (JSONException err) {
+            this.callback.error("Processing failed: " + err.toString());
+        }
+        return dir;
+    }
+
 }
