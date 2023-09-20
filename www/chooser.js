@@ -1,6 +1,6 @@
 module.exports = {
     getFiles: function (accept, successCallback, failureCallback) {
-        var result = new Promise(function (resolve, reject) {            
+        var result = new Promise(function (resolve, reject) {
             cordova.exec(
                 function (json) {
                     try {
@@ -29,8 +29,8 @@ module.exports = {
 
         return result;
     },
-    getFolder: function (accept, successCallback, failureCallback) {        
-        var result = new Promise(function (resolve, reject) {            
+    getFolder: function (accept, successCallback, failureCallback) {
+        var result = new Promise(function (resolve, reject) {
             cordova.exec(
                 function (json) {
                     try {

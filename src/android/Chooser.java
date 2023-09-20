@@ -136,7 +136,7 @@ public class Chooser extends CordovaPlugin {
                     this.callback.error("RESULT_CANCELED");
                 } else {
                     this.callback.error(resultCode);
-                }                            
+                }
             }
         } catch (Exception err) {
             this.callback.error("Failed to read folder: " + err.toString());
